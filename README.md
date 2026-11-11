@@ -6,7 +6,7 @@ Rentora is a web application built for boarding house managers to automate utili
 
 ## 1. Project Purpose
 
-**Target User:** Ate Elena (a 58-year-old boarding house manager handling 10 active rooms manually).  
+**Target User:** Boarding House Owners.  
 **The Problem:** Manual sub-meter readings and paper records lead to wrong calculations, lost income when electricity usage is not fully charged, and messy payment records.  
 **The Solution:** Rentora calculates room-level utility charges using the master electric bill and individual room readings, issues digital receipts, and tracks payments in real time.
 
