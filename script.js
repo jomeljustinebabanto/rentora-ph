@@ -337,8 +337,7 @@ async function init() {
   appData.users = appData.users || {};
   Object.keys(appData.users).forEach(k => { if (typeof appData.users[k] !== 'object') delete appData.users[k]; }); // old plain-text accounts
   document.getElementById('dbModeBadge').innerText = usePhpBackend ? 'PHP + MySQL Active' : 'Browser Storage Only';
-  try { await seedTestAccounts(); } catch (e) { console.warn('Test accounts not created:', e.message); }
-  const note = document.getElementById('testModeNote'); if (note) note.classList.toggle('hidden', !TEST_MODE);
+  try { await removeOldTestLogins(); } catch (e) { console.warn('Old test logins not checked:', e.message); }
   checkLoginSession(); updateRateDisplay(); renderAll(); setupMemojiTracker(); setupFocusTips();
 }
 
@@ -716,15 +715,15 @@ async function copyInviteCode() {
   catch (err) { notify('Could not copy. Select the code and press Ctrl+C.', true); }
 }
 
-/* ---- TEST MODE: demo logins. Set TEST_MODE to false before going live. ---- */
-const TEST_MODE = true;
-async function seedTestAccounts() {
-  if (!TEST_MODE) return;
-  let changed = false;
-  if (!appData.users.owner) { appData.users.owner = await makeUser('Owner12345', 'landlord'); changed = true; }
-  if (!appData.users.tenant101) { appData.users.tenant101 = await makeUser('Tenant12345', 'tenant', 'Room 101'); changed = true; }
-  if (!appData.landlordCode) { appData.landlordCode = await hashPw('access123'); changed = true; } // never replaces your own code
-  if (changed) saveState();
+/* ---- One-time cleanup: removes the old test logins, but only if they still use the old test passwords ---- */
+async function removeOldTestLogins() {
+  if (localStorage.getItem('rentora_test_cleaned')) return;
+  const U = appData.users;
+  if (U.owner && await checkPw(U.owner, 'Owner12345')) delete U.owner;
+  if (U.tenant101 && await checkPw(U.tenant101, 'Tenant12345')) delete U.tenant101;
+  if (appData.landlordCode && await checkPw(appData.landlordCode, 'access123')) delete appData.landlordCode;
+  saveState();
+  localStorage.setItem('rentora_test_cleaned', '1');
 }
 
 window.onload = init;
