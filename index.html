@@ -6,17 +6,655 @@
   <title>Rentora - Boarding House Utility &amp; Rent Management</title>
   <link rel="stylesheet" href="tailwind.css" />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Ensure viewport-fixed elements never break due to parent transforms */
+    html, body {
+      transform: none !important;
+      filter: none !important;
+      perspective: none !important;
+    }
+
+    /* Guarantee .hidden always wins over .flex and .grid */
+    .hidden {
+      display: none !important;
+    }
+
+    html.ui-large-text { font-size: 18px; }
+    body.ui-compact main { margin-top: 0.75rem; }
+    body.ui-compact .p-5 { padding: 0.875rem; }
+    body.ui-compact .p-4 { padding: 0.75rem; }
+    body.ui-compact .p-3\.5 { padding: 0.55rem 0.75rem; }
+
+    /* Loading Line at the Top of the Browser */
+    .top-browser-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: 4px;
+      background-color: rgba(16, 185, 129, 0.16);
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .top-browser-loader.is-active {
+      opacity: 1;
+    }
+    .top-browser-loader-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #059669 0%, #10b981 60%, #34d399 100%);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.65);
+      transition: width 0.35s ease;
+    }
+    .top-browser-loader-bar.is-running {
+      width: 45%;
+      animation: topBrowserSlide 1s infinite ease-in-out;
+    }
+    @keyframes topBrowserSlide {
+      0% { transform: translateX(-110%); }
+      100% { transform: translateX(240%); }
+    }
+
+    /* Role & Gender Badges */
+    .role-badge-sky {
+      background-color: #f0f9ff;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+    .role-text-sky {
+      color: #0284c7;
+    }
+    .gender-badge-male {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .gender-badge-female {
+      background-color: #fdf2f8;
+      color: #be185d;
+      border: 1px solid #fbcfe8;
+    }
+
+    /* Clean Filter Buttons (All, Unpaid / Partial, Fully Paid) */
+    .invFilterBtn {
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: #ffffff;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+    .invFilterBtn:hover {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+    .invFilterBtn.active {
+      background-color: #1e293b;
+      color: #ffffff;
+      border-color: #1e293b;
+    }
+
+    /* Bordered Action Buttons (Statement, Pay, SMS, Void) */
+    .table-action-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background-color: #ffffff;
+      color: #0f172a;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .table-action-btn:hover {
+      background-color: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .btn-statement {
+      background-color: #ffffff;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+    .btn-statement:hover {
+      background-color: #f8fafc;
+      border-color: #64748b;
+    }
+    .btn-pay {
+      background-color: #ecfdf5;
+      border-color: #6ee7b7;
+      color: #047857;
+    }
+    .btn-pay:hover {
+      background-color: #d1fae5;
+      border-color: #10b981;
+    }
+    .btn-sms {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+    .btn-sms:hover {
+      background-color: #e2e8f0;
+      border-color: #94a3b8;
+    }
+    .btn-void {
+      background-color: #fff1f2;
+      border-color: #fecdd3;
+      color: #e11d48;
+    }
+    .btn-void:hover {
+      background-color: #ffe4e6;
+      border-color: #fb7185;
+    }
+
+    /* Top Header & Top-Right Profile Dropdown */
+    .rentora-topbar {
+      background-color: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .user-menu-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 10px 4px 4px;
+      border-radius: 9999px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+    .user-menu-trigger:hover {
+      background-color: #f8fafc;
+    }
+    .avatar-sm {
+      width: 40px;
+      height: 40px;
+      border-radius: 9999px;
+      border: 1px solid #e2e8f0;
+      background-color: #f1f5f9;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar-md {
+      width: 44px;
+      height: 44px;
+      border-radius: 9999px;
+      border: 1px solid #e2e8f0;
+      background-color: #f1f5f9;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar-lg {
+      width: 56px;
+      height: 56px;
+      border-radius: 9999px;
+      border: 1px solid #dbeafe;
+      background-color: #ffffff;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .user-dropdown-card {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: 310px;
+      max-width: calc(100vw - 24px);
+      background-color: #f1f7fe;
+      border: 1px solid #dbeafe;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
+      padding: 16px;
+      z-index: 60;
+    }
+    .user-dropdown-card.is-open {
+      display: block;
+    }
+    .user-dropdown-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #dbeafe;
+    }
+    .user-dropdown-list {
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .user-dropdown-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background-color: #ffffff;
+      color: #475569;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #eef4fc;
+      transition: background-color 0.15s ease;
+      cursor: pointer;
+    }
+    .user-dropdown-item:hover {
+      background-color: #f8fbff;
+    }
+    .user-dropdown-item.logout-item {
+      color: #ef4444;
+    }
+    .user-dropdown-item.logout-item:hover {
+      background-color: #fff5f5;
+    }
+
+    /* Profile Inner Sub-Tabs (Seen only inside Profile View) */
+    .profile-subtabs {
+      display: inline-flex;
+      gap: 8px;
+      background-color: #ffffff;
+      padding: 5px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+    }
+    .profile-subtab-btn {
+      padding: 7px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .profile-subtab-btn:hover {
+      color: #0f172a;
+      background-color: #f8fafc;
+    }
+    .profile-subtab-btn.is-active {
+      background-color: #059669;
+      color: #ffffff;
+    }
+
+    /* Profile Tab Layout */
+    .profile-layout-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .profile-layout-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .info-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 480px) {
+      .info-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Fixed Bottom-Left Helper Widget */
+    #rentoraHelperWidget {
+      position: fixed !important;
+      top: auto !important;
+      right: auto !important;
+      bottom: 20px !important;
+      left: 20px !important;
+      z-index: 45 !important;
+      display: none !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      pointer-events: none;
+      user-select: none;
+      transform: none !important;
+    }
+    #rentoraHelperWidget.is-visible {
+      display: flex !important;
+    }
+    #rentoraHelperWidget.is-visible.guide-hidden {
+      display: none !important;
+    }
+    #guideSpeechBubble {
+      pointer-events: auto;
+      width: 270px;
+      max-width: calc(100vw - 40px);
+      margin-bottom: 10px;
+      background-color: rgba(15, 23, 42, 0.96);
+      color: #ffffff;
+      border: 1px solid #334155;
+      border-radius: 16px 16px 16px 4px;
+      padding: 12px 14px;
+      box-shadow: 0 18px 34px rgba(15, 23, 42, 0.28);
+      transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+    }
+    #guideSpeechBubble.bubble-hidden {
+      opacity: 0;
+      transform: translateY(8px);
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .helper-close-btn {
+      background: transparent;
+      border: 0;
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+    .helper-close-btn:hover {
+      color: #ffffff;
+    }
+    .helper-avatar-btn {
+      pointer-events: auto;
+      cursor: pointer;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.18s ease;
+    }
+    .helper-avatar-btn:hover {
+      transform: translateY(-3px) scale(1.03);
+    }
+    .helper-head-box {
+      position: relative;
+      width: 74px;
+      height: 86px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.25));
+    }
+    .helper-hair-back {
+      position: absolute;
+      top: 0;
+      left: 3px;
+      width: 68px;
+      height: 68px;
+      border-radius: 9999px;
+      background-color: #1c1917;
+      z-index: 1;
+    }
+    .helper-face-shell {
+      position: relative;
+      width: 56px;
+      height: 64px;
+      border-radius: 28px 28px 30px 30px;
+      background: linear-gradient(180deg, #fbd2b4 0%, #f1b78e 100%);
+      border: 1px solid rgba(217, 119, 6, 0.35);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 8px;
+    }
+    .helper-hair-cap {
+      position: absolute;
+      top: -6px;
+      left: -3px;
+      width: 62px;
+      height: 22px;
+      border-radius: 32px 32px 14px 14px;
+      background-color: #1c1917;
+      z-index: 4;
+    }
+    .helper-bang-l {
+      position: absolute;
+      top: 8px;
+      left: 2px;
+      width: 20px;
+      height: 10px;
+      border-bottom-right-radius: 14px;
+      background-color: #1c1917;
+      transform: rotate(-12deg);
+      z-index: 4;
+    }
+    .helper-bang-r {
+      position: absolute;
+      top: 8px;
+      right: 2px;
+      width: 20px;
+      height: 10px;
+      border-bottom-left-radius: 14px;
+      background-color: #1c1917;
+      transform: rotate(12deg);
+      z-index: 4;
+    }
+    .helper-brows-row {
+      width: 42px;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 9px;
+      z-index: 5;
+    }
+    .helper-brow-l {
+      width: 12px;
+      height: 3px;
+      border-radius: 9999px;
+      background-color: #1c1917;
+      transform: rotate(-6deg);
+    }
+    .helper-brow-r {
+      width: 12px;
+      height: 3px;
+      border-radius: 9999px;
+      background-color: #1c1917;
+      transform: rotate(6deg);
+    }
+    .helper-glasses-row {
+      position: absolute;
+      top: 20px;
+      left: 3px;
+      width: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 6;
+      pointer-events: none;
+    }
+    .helper-lens {
+      width: 21px;
+      height: 17px;
+      border-radius: 9999px;
+      border: 2px solid #92400e;
+      background-color: rgba(255, 255, 255, 0.14);
+    }
+    .helper-bridge {
+      width: 6px;
+      height: 2px;
+      background-color: #92400e;
+    }
+    .helper-eyes-row {
+      width: 42px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 3px;
+      margin-top: 4px;
+      z-index: 3;
+    }
+    .helper-eye-socket {
+      position: relative;
+      width: 13px;
+      height: 13px;
+      border-radius: 9999px;
+      background-color: #ffffff;
+      overflow: hidden;
+      border: 1px solid rgba(120, 53, 15, 0.25);
+    }
+    .helper-eyelid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 0%;
+      background-color: #eab086;
+      z-index: 3;
+      transition: height 0.12s ease;
+    }
+    .helper-iris-dot {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background-color: #451a03;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s linear;
+    }
+    .helper-pupil-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 9999px;
+      background-color: #000000;
+    }
+    .helper-cheeks-row {
+      width: 46px;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+      z-index: 3;
+    }
+    .helper-cheek-dot {
+      width: 10px;
+      height: 5px;
+      border-radius: 9999px;
+      background-color: rgba(244, 63, 94, 0.32);
+    }
+    .helper-nose-dot {
+      width: 5px;
+      height: 4px;
+      border-radius: 9999px;
+      background-color: rgba(146, 64, 14, 0.25);
+      margin-top: -3px;
+      z-index: 3;
+    }
+    .helper-smile {
+      width: 15px;
+      height: 7px;
+      border-radius: 2px 2px 10px 10px;
+      background-color: #be123c;
+      margin-top: 3px;
+      z-index: 3;
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .helper-teeth {
+      width: 10px;
+      height: 2px;
+      background-color: #ffffff;
+    }
+    .helper-shoulders {
+      width: 48px;
+      height: 15px;
+      margin-top: -4px;
+      border-radius: 14px 14px 4px 4px;
+      background-color: #065f46;
+      border-top: 2px solid #10b981;
+      z-index: 1;
+    }
+
+    /* Dark Mode Support */
+    body.ui-dark { background-color: #0f172a; color: #f1f5f9; }
+    body.ui-dark .rentora-topbar { background-color: #1e293b; border-color: #334155; }
+    body.ui-dark .user-menu-trigger:hover { background-color: #334155; }
+    body.ui-dark .user-dropdown-card { background-color: #1e293b; border-color: #334155; }
+    body.ui-dark .user-dropdown-header { border-color: #334155; }
+    body.ui-dark .user-dropdown-item { background-color: #0f172a; border-color: #334155; color: #e2e8f0; }
+    body.ui-dark .user-dropdown-item:hover { background-color: #1e293b; }
+    body.ui-dark .user-dropdown-item.logout-item { color: #f87171; }
+    body.ui-dark .invFilterBtn { background-color: #1e293b; border-color: #334155; color: #cbd5e1; }
+    body.ui-dark .invFilterBtn:hover { background-color: #334155; }
+    body.ui-dark .invFilterBtn.active { background-color: #059669; border-color: #059669; color: #ffffff; }
+    body.ui-dark .btn-statement { background-color: #0f172a; border-color: #475569; color: #f8fafc; }
+    body.ui-dark .btn-statement:hover { background-color: #334155; }
+    body.ui-dark .btn-pay { background-color: rgba(6, 95, 70, 0.35); border-color: #059669; color: #34d399; }
+    body.ui-dark .btn-sms { background-color: #1e293b; border-color: #475569; color: #cbd5e1; }
+    body.ui-dark .btn-void { background-color: rgba(159, 18, 57, 0.3); border-color: #e11d48; color: #fb7185; }
+    body.ui-dark .profile-subtabs { background-color: #1e293b; border-color: #334155; }
+    body.ui-dark .profile-subtab-btn { color: #94a3b8; }
+    body.ui-dark .profile-subtab-btn:hover { background-color: #334155; color: #f8fafc; }
+    body.ui-dark .profile-subtab-btn.is-active { background-color: #059669; color: #ffffff; }
+    body.ui-dark .bg-white { background-color: #1e293b !important; color: #f1f5f9; }
+    body.ui-dark .bg-slate-50 { background-color: #0f172a !important; color: #cbd5e1; }
+    body.ui-dark .bg-slate-100 { background-color: #334155 !important; color: #e2e8f0; }
+    body.ui-dark tr:hover { background-color: rgba(51, 65, 85, 0.45) !important; }
+    body.ui-dark .border-slate-200,
+    body.ui-dark .border-slate-100,
+    body.ui-dark .border-slate-300 { border-color: #334155 !important; }
+    body.ui-dark .text-slate-900,
+    body.ui-dark .text-slate-800,
+    body.ui-dark .text-slate-700 { color: #f8fafc !important; }
+    body.ui-dark .text-slate-600,
+    body.ui-dark .text-slate-500 { color: #94a3b8 !important; }
+    body.ui-dark input,
+    body.ui-dark select,
+    body.ui-dark textarea {
+      background-color: #0f172a !important;
+      color: #f8fafc !important;
+      border-color: #475569 !important;
+    }
+    body.ui-dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #334155 !important; }
+
+    @media print {
+      #rentoraHelperWidget, #topBrowserLoader { display: none !important; }
+    }
+  </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
 
+  <!-- TOP OF BROWSER LOADING LINE -->
+  <div id="topBrowserLoader" class="no-print top-browser-loader" aria-hidden="true">
+    <div id="topBrowserLoaderBar" class="top-browser-loader-bar"></div>
+  </div>
+
   <!-- VIEW 1: LOGIN SCREEN -->
   <section id="loginScreen" class="no-print min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-900">
-    <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center animate-entrance">
+    <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
 
       <div class="lg:col-span-7 text-white space-y-6 lg:pr-8">
-        <!-- RENTORA LOGO: LOGIN HEADER -->
         <div class="flex items-center gap-3.5">
-          <svg class="w-12 h-12 shrink-0 shadow-lg shadow-emerald-500/20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="48" height="48" style="width: 48px; height: 48px; min-width: 48px; flex-shrink: 0;" class="shadow-lg shadow-emerald-500/20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" rx="24" fill="#059669" />
             <path d="M 22 68 A 34 34 0 1 1 78 68" stroke="#047857" stroke-width="4" stroke-dasharray="6 4" stroke-linecap="round" fill="none" />
             <path d="M 28 64 A 28 28 0 1 1 72 64" stroke="#A7F3D0" stroke-width="2.5" stroke-opacity="0.6" fill="none" />
@@ -38,7 +676,7 @@
         </h1>
 
         <p class="text-sm text-slate-300 max-w-lg leading-relaxed">
-          Sign in with the credentials provided by your boarding house to view sub-meter computations, track payments, and download your official statements.
+          Sign in with your landlord or tenant credentials to manage rooms, view sub-meter computations, track payments, and read announcements.
         </p>
       </div>
 
@@ -47,7 +685,7 @@
           <div class="space-y-1.5">
             <h2 class="serif-heading text-2xl font-bold text-slate-900">Sign in</h2>
             <p class="text-xs text-slate-500 leading-relaxed">
-              Use your username or email &amp; the password your boarding house gave you.
+              Enter your landlord or tenant username and password.
             </p>
           </div>
 
@@ -56,7 +694,7 @@
 
           <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
             <div>
-              <label for="loginUsername" class="block text-[11px] font-bold tracking-wider text-slate-700 uppercase mb-1.5">Username or Email</label>
+              <label for="loginUsername" class="block text-[11px] font-bold tracking-wider text-slate-700 uppercase mb-1.5">Username</label>
               <input type="text" id="loginUsername" autocomplete="username" required placeholder="username"
                      class="w-full text-sm px-4 py-3 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
             </div>
@@ -76,15 +714,7 @@
               </div>
             </div>
 
-            <div class="flex items-center justify-between text-xs text-slate-500">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" id="rememberMe" class="rounded text-emerald-600 focus:ring-emerald-500" />
-                <span>Keep me signed in (7 days)</span>
-              </label>
-              
-            </div>
-
-            <button type="submit" class="w-full py-3 px-5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-full shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button type="submit" id="loginSubmitBtn" class="w-full py-3 px-5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-full shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
               <span>Sign in</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
@@ -92,15 +722,17 @@
             </button>
           </form>
 
-          <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-3">
+          <!-- Open to every Landlord / Boarding House Owner -->
+          <div id="landlordRegisterBox" class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-bold text-slate-900 leading-tight">No account yet?</p>
-              <p class="text-[11px] text-slate-500">Tenants and landlords can both create one.</p>
+              <p class="text-xs font-bold text-slate-900 leading-tight">Boarding house owner?</p>
+              <p class="text-[11px] text-slate-500">Create your own landlord account.</p>
             </div>
-            <button type="button" onclick="openSignUp()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3.5 py-2 rounded-full shrink-0 transition cursor-pointer">Create account</button>
+            <button type="button" onclick="openSignUp()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3.5 py-2 rounded-full shrink-0 transition cursor-pointer">Create Account</button>
           </div>
+
           <div class="pt-3 border-t border-slate-100 text-center">
-            <p class="text-xs text-slate-400">Forgot your password? Ask your landlord for help.</p>
+            <p class="text-xs text-slate-400">Tenants receive their login details from their boarding house landlord.</p>
           </div>
         </div>
       </div>
@@ -109,48 +741,66 @@
   </section>
 
   <!-- VIEW 2: MAIN APPLICATION DASHBOARD -->
-  <div id="mainDashboardView" class="no-print hidden pb-36 animate-entrance">
-    <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-30">
-      <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
-        <!-- RENTORA LOGO: DASHBOARD HEADER -->
+  <div id="mainDashboardView" class="no-print hidden" style="padding-bottom: 7rem;">
+    <header class="rentora-topbar">
+      <div class="max-w-6xl mx-auto px-4 py-2.5 flex justify-between items-center gap-3">
+        <!-- Brand Logo -->
         <div class="flex items-center gap-3">
-          <svg class="w-8 h-8 shrink-0" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="38" height="38" style="width: 38px; height: 38px; min-width: 38px; flex-shrink: 0;" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" rx="24" fill="#059669" />
             <path d="M 22 68 A 34 34 0 1 1 78 68" stroke="#047857" stroke-width="4" stroke-dasharray="6 4" stroke-linecap="round" fill="none" />
             <path d="M 28 64 A 28 28 0 1 1 72 64" stroke="#A7F3D0" stroke-width="2.5" stroke-opacity="0.6" fill="none" />
             <path d="M 34 26 H 54 C 62.8 26 70 32.2 70 41 C 70 47.8 65.2 53.5 58.5 55.2 L 71 74 H 57.5 L 46.5 56 H 45 V 74 H 34 V 26 Z M 45 36 V 47 H 53.5 C 57 47 60 44.5 60 41.5 C 60 38.5 57 36 53.5 36 H 45 Z" fill="#0F172A" />
           </svg>
-          <div class="flex items-center gap-2">
-            <h1 class="text-xl font-extrabold tracking-tight text-white">Rentora</h1>
-            <span id="dbModeBadge" class="text-[11px] bg-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-600 text-emerald-100">
-              Active
-            </span>
+          <div>
+            <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-none">Rentora</h1>
+            <p id="headerHouseSubtitle" class="text-[10px] tracking-widest text-slate-400 uppercase mt-0.5" style="white-space: nowrap;">Boarding House Portal</p>
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <span id="currentUserBadge" class="text-xs bg-emerald-800 border border-emerald-600 px-3 py-1.5 rounded-full text-emerald-100 font-medium">
-            Landlord: Ate Elena
-          </span>
-          <button onclick="downloadBackup()" data-landlord data-tip="Save a copy of tenants and bills to your computer." class="guide-hover text-xs bg-emerald-900 hover:bg-emerald-950 px-3 py-1.5 rounded-lg transition text-emerald-200 shadow-sm cursor-pointer">Download Backup</button>
-          <button onclick="openModal('resetPasswordModal')" data-tip="Change your password." class="guide-hover text-xs bg-emerald-900 hover:bg-emerald-950 px-3 py-1.5 rounded-lg transition text-emerald-200 shadow-sm cursor-pointer">Change Password</button>
-          <button onclick="openCodeModal()" data-landlord data-tip="Change the code needed to add another landlord account." class="guide-hover text-xs bg-emerald-900 hover:bg-emerald-950 px-3 py-1.5 rounded-lg transition text-emerald-200 shadow-sm cursor-pointer">Access Code</button>
-          <button onclick="handleLogout()" data-tip="Sign out and return to the login screen." class="guide-hover text-xs bg-rose-700 hover:bg-rose-800 text-white px-3 py-1.5 rounded-lg transition shadow-sm font-medium cursor-pointer">
-            Sign Out
-          </button>
+        <!-- Top-Right Controls: Landlord/Tenant Profile Dropdown -->
+        <div class="flex items-center gap-3">
+          <div id="userMenuWrapper" class="relative">
+            <button type="button" id="userMenuBtn" onclick="toggleUserDropdown(event)" class="user-menu-trigger">
+              <span id="headerAvatarSlot" class="avatar-sm"></span>
+              <span id="headerShortName" class="text-sm font-bold text-slate-800">User</span>
+              <svg width="14" height="14" class="text-slate-500" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 8l5 5 5-5" />
+              </svg>
+            </button>
+
+            <!-- Top-Right Floating Profile & Settings Dropdown -->
+            <div id="userDropdownMenu" class="user-dropdown-card">
+              <div class="user-dropdown-header">
+                <span id="dropdownAvatarSlot" class="avatar-lg"></span>
+                <div class="min-w-0">
+                  <p id="dropdownFullName" class="text-sm font-bold text-slate-900 truncate">-</p>
+                  <p id="dropdownRoleLabel" class="text-xs font-semibold role-text-sky mt-0.5">-</p>
+                  <p id="dropdownSubLabel" class="text-xs text-slate-500 truncate mt-0.5">-</p>
+                </div>
+              </div>
+
+              <div class="user-dropdown-list">
+                <button type="button" onclick="openProfileFromMenu()" class="user-dropdown-item">Profile</button>
+                <button type="button" onclick="openSettingsFromMenu()" class="user-dropdown-item">Settings</button>
+                <button type="button" onclick="handleLogout()" class="user-dropdown-item logout-item">Logout</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
 
     <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
+      <!-- LANDLORD SUMMARY CARDS -->
       <section data-landlord class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm guide-hover" data-tip="Total number of registered rooms currently occupied.">
           <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">TOTAL ROOMS</p>
           <p id="statTotalRooms" class="text-2xl font-bold text-slate-800 mt-1">0</p>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm guide-hover" data-tip="Power rate per kWh computed from your main utility bill.">
-          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">CURRENT POWER RATE</p>
-          <p id="statPowerRate" class="text-2xl font-bold text-emerald-600 mt-1">₱0.00 / kWh</p>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm guide-hover" data-tip="Total active bills awaiting payment.">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">PENDING BILLS</p>
+          <p id="statPendingBills" class="text-2xl font-bold text-emerald-600 mt-1">0</p>
         </div>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm guide-hover" data-tip="Total remaining unpaid balances across all room bills.">
           <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">UNPAID BALANCES</p>
@@ -162,62 +812,39 @@
         </div>
       </section>
 
-      <section id="masterRateSection" data-landlord class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 guide-hover" data-tip="Calculate rate per unit by dividing total electric bill by kWh used.">
-        <div class="flex items-center justify-between cursor-pointer" onclick="toggleRatePanel()">
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 bg-emerald-600 rounded-full animate-pulse"></span>
-            <h2 class="font-bold text-base text-slate-800">Master Electric &amp; Water Rate Calculator</h2>
-          </div>
-          <button type="button" class="text-xs text-slate-400 font-bold uppercase tracking-wider hover:text-slate-600">TOGGLE SETTINGS</button>
-        </div>
-        <div id="ratePanel" class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Main Electric Bill (₱)</label>
-            <input type="number" step="0.01" min="0" id="cfgMainBill" class="w-full text-sm border border-slate-300 rounded-xl p-2.5" value="7850.00" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Total kWh on Main Bill</label>
-            <input type="number" step="0.01" min="0.01" id="cfgMainKwh" class="w-full text-sm border border-slate-300 rounded-xl p-2.5" value="550.00" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Fixed Water Fee Per Room (₱)</label>
-            <input type="number" step="0.01" min="0" id="cfgWaterFee" class="w-full text-sm border border-slate-300 rounded-xl p-2.5" value="150.00" />
-          </div>
-          <div class="flex items-end">
-            <button onclick="saveUtilityRates()" data-tip="Update rate per kWh for future room calculations." class="guide-hover w-full bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium py-2.5 px-4 rounded-xl transition shadow-sm cursor-pointer">
-              Update Rates
-            </button>
-          </div>
-        </div>
-      </section>
-
+      <!-- MAIN DASHBOARD NAVIGATION TABS -->
       <div class="flex flex-wrap border-b border-slate-200 gap-6 text-sm font-semibold">
-        <button id="tabBtnTenants" data-landlord onclick="switchTab('tenants')" data-tip="Manage room list, tenant details, and sub-meter dials." class="guide-hover pb-2.5 border-b-2 border-emerald-600 text-emerald-700 cursor-pointer">
+        <button id="tabBtnTenants" data-landlord onclick="switchTab('tenants')" data-tip="Manage room list, tenant full names, and sub-meter readings." class="guide-hover pb-2.5 border-b-2 border-emerald-600 text-emerald-700 cursor-pointer">
           Tenants &amp; Rooms (<span id="countTenantsBadge">0</span>)
         </button>
-        <button id="tabBtnBilling" onclick="switchTab('billing')" data-tip="View billing history, send SMS reminders, confirm payments, and print receipts." class="guide-hover pb-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 cursor-pointer">
+        <button id="tabBtnBilling" onclick="switchTab('billing')" data-tip="View billing history, compute room bills, confirm payments, and print statements." class="guide-hover pb-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 cursor-pointer">
           Monthly Billing &amp; Invoices (<span id="countInvoicesBadge">0</span>)
+        </button>
+        <button id="tabBtnAnnouncements" onclick="switchTab('announcements')" data-tip="Read boarding house notices and announcements." class="guide-hover pb-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 cursor-pointer">
+          Announcements (<span id="countAnnouncementsBadge">0</span>)
         </button>
       </div>
 
-      <div id="viewTenants" class="space-y-4">
+      <!-- TAB 1: TENANTS & ROOMS (LANDLORD ONLY) -->
+      <div id="viewTenants" data-landlord class="space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <input type="text" id="tenantSearch" oninput="renderTenants()" data-tip="Filter any room or tenant name." aria-label="Search room or tenant..." placeholder="Search room or tenant..." class="guide-hover text-sm border border-slate-300 rounded-xl px-3.5 py-2 w-64 focus:outline-emerald-600 shadow-sm" />
-          <button onclick="openModal('addTenantModal')" data-tip="Add a room, base rent, and initial sub-meter reading." class="guide-hover bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow-sm cursor-pointer">
+          <input type="text" id="tenantSearch" oninput="renderTenants()" data-tip="Filter by room number or tenant last/first name." aria-label="Search room or tenant..." placeholder="Search room or tenant name..." class="guide-hover text-sm border border-slate-300 rounded-xl px-3.5 py-2 w-64 focus:outline-emerald-600 shadow-sm bg-white" />
+          <button onclick="openModal('addTenantModal')" data-tip="Add a room, tenant full name, gender, base rent, and initial sub-meter reading." class="guide-hover bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow-sm cursor-pointer">
             + Add New Tenant
           </button>
         </div>
         <div id="tenantsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
 
+      <!-- TAB 2: MONTHLY BILLING & INVOICES -->
       <div id="viewBilling" class="space-y-4 hidden">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex gap-2">
-            <button onclick="filterInvoices('all')" class="invFilterBtn active text-xs font-semibold px-3.5 py-1.5 rounded-lg border bg-slate-800 text-white cursor-pointer" data-filter="all">All</button>
-            <button onclick="filterInvoices('unpaid')" class="invFilterBtn text-xs font-semibold px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 cursor-pointer" data-filter="unpaid">Unpaid / Partial</button>
-            <button onclick="filterInvoices('paid')" class="invFilterBtn text-xs font-semibold px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 cursor-pointer" data-filter="paid">Fully Paid</button>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="filterInvoices('all')" class="invFilterBtn active" data-filter="all">All</button>
+            <button type="button" onclick="filterInvoices('unpaid')" class="invFilterBtn" data-filter="unpaid">Unpaid / Partial</button>
+            <button type="button" onclick="filterInvoices('paid')" class="invFilterBtn" data-filter="paid">Fully Paid</button>
           </div>
-          <button onclick="openCreateInvoiceModal()" data-landlord data-tip="Compute a new bill using current sub-meter reading." class="guide-hover bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow-sm cursor-pointer">
+          <button onclick="openCreateInvoiceModal()" data-landlord data-tip="Compute a new bill with custom kWh rate, water fee, and sub-meter reading." class="guide-hover bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow-sm cursor-pointer">
             + Calculate New Room Bill
           </button>
         </div>
@@ -239,168 +866,349 @@
           </table>
         </div>
       </div>
+
+      <!-- TAB 3: ANNOUNCEMENTS (EDITOR FOR LANDLORD, FEED FOR ALL) -->
+      <div id="viewAnnouncements" class="space-y-5 hidden">
+        <section data-landlord class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 id="annEditorHeading" class="font-bold text-base text-slate-800">Post New Announcement</h2>
+              <p class="text-xs text-slate-500">Share notices, maintenance schedules, or reminders with your rooms or a specific room.</p>
+            </div>
+            <button type="button" id="annCancelEditBtn" onclick="resetAnnouncementEditor()" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 cursor-pointer">
+              Cancel Edit
+            </button>
+          </div>
+
+          <form id="announcementForm" onsubmit="handleSaveAnnouncement(event)" class="space-y-3">
+            <input type="hidden" id="annEditId" value="" />
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Announcement Title</label>
+              <input type="text" id="annTitle" required maxlength="150" placeholder="e.g. Water Interruption Notice" class="w-full text-sm border border-slate-300 rounded-xl p-2.5" />
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Priority Level</label>
+                <select id="annPriority" class="w-full text-sm border border-slate-300 rounded-xl p-2.5">
+                  <option value="normal">General Notice</option>
+                  <option value="important">Important Reminder</option>
+                  <option value="urgent">Urgent Alert</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Target Audience</label>
+                <select id="annTargetRoom" class="w-full text-sm border border-slate-300 rounded-xl p-2.5">
+                  <option value="ALL">All Rooms</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Message Details</label>
+              <textarea id="annBody" rows="3" required maxlength="3000" placeholder="Write the details of your announcement here..." class="w-full text-sm border border-slate-300 rounded-xl p-3"></textarea>
+            </div>
+            <div class="flex justify-end">
+              <button type="submit" id="annSubmitBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
+                Post Announcement
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <div id="announcementsFeed" class="space-y-3"></div>
+      </div>
+
+      <!-- VIEW 4: PROFILE & SETTINGS VIEW (OPENED ONLY FROM TOP-RIGHT USER MENU) -->
+      <div id="viewProfile" class="hidden space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="profile-subtabs">
+            <button type="button" id="subTabBtnProfile" onclick="switchProfileSubTab('profile')" class="profile-subtab-btn is-active">
+              Profile
+            </button>
+            <button type="button" id="subTabBtnSettings" onclick="switchProfileSubTab('settings')" class="profile-subtab-btn">
+              Settings
+            </button>
+          </div>
+          <button type="button" onclick="returnToDashboard()" class="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm cursor-pointer">
+            &larr; Back to Dashboard
+          </button>
+        </div>
+
+        <!-- SUB-TAB 1: PROFILE -->
+        <div id="profileSubViewProfile" class="profile-layout-grid">
+          <!-- LEFT CARD: ACCOUNT PROFILE -->
+          <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="border-b border-slate-100 pb-3 flex items-center gap-3.5">
+              <span id="profileAvatarSlot" class="avatar-lg"></span>
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span id="profileRoleBadge" class="inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full role-badge-sky">Account</span>
+                  <span id="profileGenderBadge" class="inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full gender-badge-male">Male</span>
+                </div>
+                <h2 id="profileFullName" class="text-lg font-bold text-slate-900 mt-1.5">-</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Username: <span id="profileUsername" class="font-mono font-semibold text-slate-700">-</span></p>
+              </div>
+            </div>
+
+            <!-- Tenant-specific details -->
+            <div id="profileTenantDetails" class="hidden info-grid-2 text-xs">
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-100 col-span-full">
+                <p class="text-slate-500 uppercase font-semibold text-[10px]">Boarding House</p>
+                <p id="profileTenantHouse" class="text-sm font-bold text-slate-800 mt-0.5">-</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <p class="text-slate-500 uppercase font-semibold text-[10px]">Assigned Room</p>
+                <p id="profileRoom" class="text-sm font-bold text-slate-800 mt-0.5">-</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <p class="text-slate-500 uppercase font-semibold text-[10px]">Gender</p>
+                <p id="profileGenderText" class="text-sm font-bold text-slate-800 mt-0.5">-</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <p class="text-slate-500 uppercase font-semibold text-[10px]">Contact Number</p>
+                <p id="profilePhone" class="text-sm font-bold text-slate-800 mt-0.5">-</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <p class="text-slate-500 uppercase font-semibold text-[10px]">Monthly Base Rent</p>
+                <p id="profileRent" class="text-sm font-bold text-emerald-700 mt-0.5">₱0.00</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-100 col-span-full">
+                <p class="text-slate-500 uppercase font-semibold text-[10px]">Latest Meter Reading</p>
+                <p id="profileMeter" class="text-sm font-bold text-slate-800 mt-0.5">0.00 kWh</p>
+              </div>
+            </div>
+
+            <!-- Landlord-specific details -->
+            <div id="profileLandlordDetails" class="hidden space-y-3 text-xs">
+              <div class="info-grid-2">
+                <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                  <p class="text-slate-500 uppercase font-semibold text-[10px]">Managed Rooms</p>
+                  <p id="profileTotalRooms" class="text-sm font-bold text-slate-800 mt-0.5">0</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                  <p class="text-slate-500 uppercase font-semibold text-[10px]">Active Tenant Logins</p>
+                  <p id="profileTenantLogins" class="text-sm font-bold text-emerald-700 mt-0.5">0</p>
+                </div>
+              </div>
+
+              <form onsubmit="handleUpdateHouseName(event)" class="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-2">
+                <label for="profHouseNameInput" class="block text-[10px] text-slate-500 uppercase font-semibold">Boarding House Name</label>
+                <div class="flex gap-2">
+                  <input type="text" id="profHouseNameInput" maxlength="120" required placeholder="e.g. Sunrise Boarding House" class="flex-1 text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white" />
+                  <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg cursor-pointer">Save</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Landlord Admin Tools -->
+            <div data-landlord class="pt-3 border-t border-slate-100 flex flex-wrap gap-2">
+              <button type="button" onclick="downloadBackup()" class="text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition cursor-pointer">
+                Download JSON Backup
+              </button>
+            </div>
+          </section>
+
+          <!-- RIGHT CARD: CHANGE PASSWORD -->
+          <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <h3 class="font-bold text-base text-slate-800 border-b border-slate-100 pb-2">Change Password</h3>
+            <div id="profilePassAlert" class="hidden p-2.5 rounded-xl text-xs font-medium"></div>
+            <form id="profilePasswordForm" onsubmit="handleProfilePasswordSubmit(event)" class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Current Password</label>
+                <input type="password" id="profCurrPass" autocomplete="current-password" required placeholder="Enter current password" class="w-full text-sm border border-slate-300 rounded-xl p-2.5" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">New Password (8+ chars)</label>
+                <input type="password" id="profNewPass" autocomplete="new-password" required placeholder="New password" class="w-full text-sm border border-slate-300 rounded-xl p-2.5" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Confirm New Password</label>
+                <input type="password" id="profNewPass2" autocomplete="new-password" required placeholder="Repeat new password" class="w-full text-sm border border-slate-300 rounded-xl p-2.5" />
+              </div>
+              <div class="flex justify-end pt-1">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer">
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <!-- SUB-TAB 2: SETTINGS (ONLY INSIDE PROFILE VIEW) -->
+        <div id="profileSubViewSettings" class="hidden">
+          <section id="profileSettingsSection" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 max-w-2xl space-y-4">
+            <div class="border-b border-slate-100 pb-3">
+              <h2 class="font-bold text-base text-slate-900">Display &amp; Accessibility Settings</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Customize how Rentora looks and feels on your device.</p>
+            </div>
+
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div>
+                  <p class="font-semibold text-slate-800 text-xs">Text Size</p>
+                  <p class="text-[11px] text-slate-500">Increase font size for easier reading.</p>
+                </div>
+                <select id="uiSettingTextSize" onchange="updateUiSettings()" class="text-xs border border-slate-300 rounded-lg px-3 py-2 font-semibold bg-white shrink-0">
+                  <option value="normal">Standard</option>
+                  <option value="large">Large Text</option>
+                </select>
+              </div>
+
+              <div class="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div>
+                  <p class="font-semibold text-slate-800 text-xs">Layout Spacing</p>
+                  <p class="text-[11px] text-slate-500">Switch between airy or compact cards and tables.</p>
+                </div>
+                <select id="uiSettingDensity" onchange="updateUiSettings()" class="text-xs border border-slate-300 rounded-lg px-3 py-2 font-semibold bg-white shrink-0">
+                  <option value="comfortable">Comfortable</option>
+                  <option value="compact">Compact</option>
+                </select>
+              </div>
+
+              <div class="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div>
+                  <p class="font-semibold text-slate-800 text-xs">Color Theme</p>
+                  <p class="text-[11px] text-slate-500">Reduce glare at night with Dark Mode.</p>
+                </div>
+                <select id="uiSettingTheme" onchange="updateUiSettings()" class="text-xs border border-slate-300 rounded-lg px-3 py-2 font-semibold bg-white shrink-0">
+                  <option value="light">Light Mode</option>
+                  <option value="dark">Dark Mode</option>
+                </select>
+              </div>
+
+              <div class="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div>
+                  <p class="font-semibold text-slate-800 text-xs">Helper Guide</p>
+                  <p class="text-[11px] text-slate-500">Show or hide the bottom-left interactive helper.</p>
+                </div>
+                <select id="uiSettingGuide" onchange="updateUiSettings()" class="text-xs border border-slate-300 rounded-lg px-3 py-2 font-semibold bg-white shrink-0">
+                  <option value="show">Show Guide</option>
+                  <option value="hide">Hide Guide</option>
+                </select>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
     </main>
-
-    <!-- MEMOJI GUIDE WIDGET -->
-    <aside id="memojiWidget" class="fixed bottom-5 left-5 z-40 flex flex-col items-start pointer-events-none select-none">
-      <div id="guideSpeechBubble" class="pointer-events-none max-w-xs bg-slate-900/95 backdrop-blur-md text-white text-xs p-3.5 rounded-2xl rounded-bl-none shadow-2xl border border-slate-700/80 mb-3 transition-all duration-200 opacity-0 translate-y-2 invisible">
-        <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
-          <div class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span class="font-bold text-emerald-400 text-[11px] tracking-wide uppercase">Ate Elena Guide</span>
-          </div>
-          <span class="text-[9px] text-slate-400 font-mono">Active</span>
-        </div>
-        <p id="guideSpeechText" class="text-slate-200 leading-snug">Move your cursor over any button or card to see instructions.</p>
-      </div>
-
-      <div id="memojiAvatarBtn" class="pointer-events-auto memoji-scene cursor-pointer" onclick="triggerMemojiWink()" title="Click Elena to wink">
-        <div id="memojiHeadWrapper" class="memoji-head-wrapper relative w-20 h-24 flex flex-col items-center justify-center filter drop-shadow-xl">
-          <div class="absolute -top-1 w-20 h-20 rounded-full bg-stone-900 z-0"></div>
-          <div id="memojiFace" class="memoji-skin relative w-16 h-[72px] rounded-[36px] border border-orange-300/40 z-10 flex flex-col items-center pt-1.5 pb-2 overflow-visible">
-            <div class="memoji-hair-top absolute -top-2.5 w-[72px] h-7 rounded-t-full rounded-b-2xl z-20"></div>
-            <div class="absolute top-1.5 left-1.5 w-6 h-3 rounded-br-full bg-stone-900 z-20 transform -rotate-12"></div>
-            <div class="absolute top-1 right-1.5 w-6 h-3 rounded-bl-full bg-stone-900 z-20 transform rotate-12"></div>
-            <div id="eyebrowRow" class="w-12 flex justify-between mt-2.5 px-0.5 z-30 transition-transform">
-              <div id="leftBrow" class="w-3.5 h-1 bg-stone-900 rounded-full transform -rotate-6"></div>
-              <div id="rightBrow" class="w-3.5 h-1 bg-stone-900 rounded-full transform rotate-6"></div>
-            </div>
-            <div class="absolute top-5 w-14 flex justify-between z-40 pointer-events-none">
-              <div class="glass-rim w-6 h-5 rounded-full relative"></div>
-              <div class="h-0.5 w-2 bg-amber-700 self-center"></div>
-              <div class="glass-rim w-6 h-5 rounded-full relative"></div>
-            </div>
-            <div class="w-12 flex justify-between px-1 mt-1 z-[25] relative">
-              <div class="memoji-sclera relative w-4 h-4 rounded-full overflow-hidden" id="leftEyeSocket">
-                <div class="eye-lid" id="leftLid"></div>
-                <div class="memoji-iris absolute w-2.5 h-2.5 rounded-full top-0.5 left-0.5 flex items-center justify-center" id="leftIris">
-                  <div class="w-1 h-1 bg-black rounded-full"></div>
-                </div>
-              </div>
-              <div class="memoji-sclera relative w-4 h-4 rounded-full overflow-hidden" id="rightEyeSocket">
-                <div class="eye-lid" id="rightLid"></div>
-                <div class="memoji-iris absolute w-2.5 h-2.5 rounded-full top-0.5 left-0.5 flex items-center justify-center" id="rightIris">
-                  <div class="w-1 h-1 bg-black rounded-full"></div>
-                </div>
-              </div>
-            </div>
-            <div class="w-14 flex justify-between px-1 mt-0.5 z-20">
-              <div class="w-3 h-1.5 rounded-full bg-rose-400/35 blur-[1px]"></div>
-              <div class="w-3 h-1.5 rounded-full bg-rose-400/35 blur-[1px]"></div>
-            </div>
-            <div class="w-1.5 h-1.5 bg-amber-800/20 rounded-full -mt-1 z-20 shadow-sm"></div>
-            <div id="memojiMouth" class="memoji-lips w-4 h-2 rounded-b-full rounded-t-sm mt-0.5 z-20 transition-all flex items-start justify-center overflow-hidden">
-              <div class="w-2.5 h-0.5 bg-white rounded-b-sm opacity-90"></div>
-            </div>
-          </div>
-          <div class="w-12 h-4 -mt-1.5 bg-emerald-800 rounded-t-2xl shadow-md border-t border-emerald-600 z-[5]"></div>
-        </div>
-      </div>
-    </aside>
   </div>
 
+  <!-- FIXED BOTTOM-LEFT HELPER WIDGET -->
+  <aside id="rentoraHelperWidget" class="no-print">
+    <div id="guideSpeechBubble" class="bubble-hidden">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-1.5">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="font-bold text-emerald-400 text-[11px] tracking-wide uppercase">Helper Guide</span>
+        </div>
+        <button type="button" onclick="hideGuideMessage()" aria-label="Close tip" class="helper-close-btn">&times;</button>
+      </div>
+      <p id="guideSpeechText" class="text-xs text-slate-200 leading-snug">Hover over any card or button, or click me for quick dashboard tips.</p>
+    </div>
+
+    <button type="button" id="memojiAvatarBtn" class="helper-avatar-btn" onclick="triggerMemojiWink()" title="Click for a quick tip">
+      <div class="helper-head-box">
+        <div class="helper-hair-back"></div>
+        <div class="helper-face-shell">
+          <div class="helper-hair-cap"></div>
+          <div class="helper-bang-l"></div>
+          <div class="helper-bang-r"></div>
+          <div class="helper-brows-row">
+            <div class="helper-brow-l"></div>
+            <div class="helper-brow-r"></div>
+          </div>
+          <div class="helper-glasses-row">
+            <div class="helper-lens"></div>
+            <div class="helper-bridge"></div>
+            <div class="helper-lens"></div>
+          </div>
+          <div class="helper-eyes-row">
+            <div class="helper-eye-socket">
+              <div class="helper-eyelid" id="leftLid"></div>
+              <div class="helper-iris-dot" id="leftIris">
+                <div class="helper-pupil-dot"></div>
+              </div>
+            </div>
+            <div class="helper-eye-socket">
+              <div class="helper-eyelid" id="rightLid"></div>
+              <div class="helper-iris-dot" id="rightIris">
+                <div class="helper-pupil-dot"></div>
+              </div>
+            </div>
+          </div>
+          <div class="helper-cheeks-row">
+            <div class="helper-cheek-dot"></div>
+            <div class="helper-cheek-dot"></div>
+          </div>
+          <div class="helper-nose-dot"></div>
+          <div class="helper-smile">
+            <div class="helper-teeth"></div>
+          </div>
+        </div>
+        <div class="helper-shoulders"></div>
+      </div>
+    </button>
+  </aside>
+
   <!-- MODALS -->
+  <!-- Landlord / Boarding House Owner Registration Modal -->
   <div id="signUpModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'signUpModal')" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="serif-heading font-bold text-slate-900 text-lg">Create account</h3>
+        <h3 class="serif-heading font-bold text-slate-900 text-lg">Create Landlord Account</h3>
         <button type="button" onclick="closeModal('signUpModal')" aria-label="Close" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
       </div>
+      <p class="text-xs text-slate-500">Register your boarding house to manage your own rooms, tenants, rates, and monthly utility bills.</p>
       <div id="signUpErrorAlert" role="alert" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium"></div>
       <form id="signUpForm" onsubmit="handleSignUpSubmit(event)" class="space-y-3">
-        <select id="regRole" onchange="updateSignUpFields()" aria-label="Account type" class="w-full text-sm border rounded-xl p-2.5">
-          <option value="tenant">I am a tenant</option>
-          <option value="landlord">I am the landlord</option>
-        </select>
-        <div id="regTenantFields" class="space-y-3">
-          <input type="text" id="regRoom" aria-label="Your room" placeholder="Your room (e.g. Room 101)" class="w-full text-sm border rounded-xl p-2.5" />
-          <input type="text" id="regInvite" autocomplete="off" aria-label="Invite code" placeholder="Invite code from your landlord (like K7M2-9QXA)" class="w-full text-sm border rounded-xl p-2.5" />
-        </div>
-        <div id="regLandlordFields" class="space-y-1.5 hidden">
-          <input type="password" id="regCode" autocomplete="off" aria-label="Landlord access code" placeholder="Landlord access code" class="w-full text-sm border rounded-xl p-2.5" />
-          <p id="regCodeHint" class="text-[11px] text-slate-500"></p>
-        </div>
-        <input type="text" id="regUsername" autocomplete="username" required aria-label="Username" placeholder="Choose a username" class="w-full text-sm border rounded-xl p-2.5" />
+        <input type="text" id="regHouseName" required maxlength="120" aria-label="Boarding House Name" placeholder="Boarding House Name (e.g. Sunrise Boarding House)" class="w-full text-sm border rounded-xl p-2.5" />
+        <input type="text" id="regUsername" autocomplete="username" required aria-label="Landlord Username" placeholder="Landlord username (3-30 chars)" class="w-full text-sm border rounded-xl p-2.5" />
         <input type="password" id="regPassword" autocomplete="new-password" required aria-label="Password" placeholder="Password (8+ characters)" class="w-full text-sm border rounded-xl p-2.5" />
         <input type="password" id="regPassword2" autocomplete="new-password" required aria-label="Repeat password" placeholder="Repeat password" class="w-full text-sm border rounded-xl p-2.5" />
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeModal('signUpModal')" class="px-4 py-2 border rounded-full text-xs font-semibold text-slate-600 cursor-pointer">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-slate-900 text-white rounded-full text-xs font-bold cursor-pointer">Create account</button>
+          <button type="submit" class="px-5 py-2 bg-slate-900 text-white rounded-full text-xs font-bold cursor-pointer">Create Landlord</button>
         </div>
       </form>
     </div>
   </div>
 
-  <div id="codeModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'codeModal')" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="serif-heading font-bold text-slate-900 text-lg">Change access code</h3>
-        <button type="button" onclick="closeModal('codeModal')" aria-label="Close" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
-      </div>
-      <p class="text-xs text-slate-500">The access code is needed to add another landlord account. Enter your account password to confirm it is you. You do not need the old code.</p>
-      <div id="codeErrorAlert" role="alert" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium"></div>
-      <form id="codeForm" onsubmit="handleChangeCode(event)" class="space-y-3">
-        <input type="password" id="codePassword" autocomplete="current-password" required aria-label="Your account password" placeholder="Your account password" class="w-full text-sm border rounded-xl p-2.5" />
-        <input type="password" id="codeNew" autocomplete="off" required aria-label="New access code" placeholder="New access code (6+ characters)" class="w-full text-sm border rounded-xl p-2.5" />
-        <input type="password" id="codeNew2" autocomplete="off" required aria-label="Repeat new access code" placeholder="Repeat new access code" class="w-full text-sm border rounded-xl p-2.5" />
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('codeModal')" class="px-4 py-2 border rounded-full text-xs font-semibold text-slate-600 cursor-pointer">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-slate-900 text-white rounded-full text-xs font-bold cursor-pointer">Save access code</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div id="inviteModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'inviteModal')" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="serif-heading font-bold text-slate-900 text-lg">Tenant invite code</h3>
-        <button type="button" onclick="closeModal('inviteModal')" aria-label="Close" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
-      </div>
-      <p id="inviteRoomLabel" class="text-sm text-slate-600"></p>
-      <p id="inviteCodeText" class="font-mono text-3xl font-bold tracking-widest text-slate-900 select-all"></p>
-      <p id="inviteNote" class="text-xs text-slate-500"></p>
-      <div class="flex justify-center gap-2 pt-1">
-        <button type="button" onclick="copyInviteCode()" class="px-4 py-2 border rounded-full text-xs font-semibold text-slate-700 cursor-pointer">Copy code</button>
-        <button type="button" onclick="closeModal('inviteModal')" class="px-5 py-2 bg-slate-900 text-white rounded-full text-xs font-bold cursor-pointer">Done</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="resetPasswordModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'resetPasswordModal')" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="serif-heading font-bold text-slate-900 text-lg">Change your password</h3>
-        <button type="button" onclick="closeModal('resetPasswordModal')" aria-label="Close" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
-      </div>
-      <div id="resetErrorAlert" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium"></div>
-      <form id="resetPasswordForm" onsubmit="handleResetPasswordSubmit(event)" class="space-y-3">
-        <input type="password" id="resetUsername" autocomplete="current-password" required aria-label="Current password" placeholder="Current password" class="w-full text-sm border rounded-xl p-2.5" />
-        <input type="password" id="resetNewPassword" autocomplete="new-password" required aria-label="New password (8+ characters)" placeholder="New password (8+ characters)" class="w-full text-sm border rounded-xl p-2.5" />
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('resetPasswordModal')" class="px-4 py-2 border rounded-full text-xs font-semibold text-slate-600 cursor-pointer">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-full text-xs font-bold cursor-pointer">Save New Password</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
+  <!-- Add Room Tenant Modal (Includes Male / Female Gender Selection) -->
   <div id="addTenantModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'addTenantModal')" class="no-print fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="font-bold text-slate-800 text-lg">Add Room Tenant</h3>
         <button type="button" onclick="closeModal('addTenantModal')" aria-label="Close" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
       </div>
       <form id="tenantForm" onsubmit="handleSaveTenant(event)" class="space-y-3">
-        <input type="text" name="room_no" id="tRoom" required aria-label="Room Identifier (e.g. Room 103)" placeholder="Room Identifier (e.g. Room 103)" class="w-full text-sm border rounded-xl p-2.5" />
-        <input type="text" name="tenant_name" id="tName" required aria-label="Tenant Full Name" placeholder="Tenant Full Name" class="w-full text-sm border rounded-xl p-2.5" />
-        <input type="text" name="phone" id="tPhone" required aria-label="Phone Number" placeholder="Phone Number" class="w-full text-sm border rounded-xl p-2.5" />
-        <input type="text" id="tUser" autocomplete="off" aria-label="Tenant login username (optional)" placeholder="Tenant login username (optional)" class="w-full text-sm border rounded-xl p-2.5" />
-        <input type="password" id="tPass" autocomplete="new-password" aria-label="Temporary password, 8+ characters (optional)" placeholder="Temporary password, 8+ characters (optional)" class="w-full text-sm border rounded-xl p-2.5" />
+        <input type="text" id="tRoom" required aria-label="Room Identifier" placeholder="Room Identifier (e.g. Room 101)" class="w-full text-sm border rounded-xl p-2.5" />
+
         <div class="grid grid-cols-2 gap-3">
-          <input type="number" step="0.01" min="0" name="base_rent" id="tRent" required aria-label="Monthly Rent (₱)" placeholder="Monthly Rent (₱)" class="w-full text-sm border rounded-xl p-2.5" />
-          <input type="number" step="0.01" min="0" name="current_meter" id="tMeter" required aria-label="Initial Sub-Meter (kWh)" placeholder="Initial Sub-Meter (kWh)" class="w-full text-sm border rounded-xl p-2.5" />
+          <input type="text" id="tLastName" required aria-label="Last Name" placeholder="Last Name *" class="w-full text-sm border rounded-xl p-2.5" />
+          <input type="text" id="tFirstName" required aria-label="First Name" placeholder="First Name *" class="w-full text-sm border rounded-xl p-2.5" />
         </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <input type="text" id="tMiddleName" aria-label="Middle Name (Optional)" placeholder="Middle Name (Optional)" class="w-full text-sm border rounded-xl p-2.5" />
+          <select id="tGender" required aria-label="Gender" class="w-full text-sm border rounded-xl p-2.5 bg-white">
+            <option value="">Gender *</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+
+        <input type="text" id="tPhone" required aria-label="Phone Number" placeholder="Phone Number (e.g. 09171234567)" class="w-full text-sm border rounded-xl p-2.5" />
+
+        <div class="grid grid-cols-2 gap-3">
+          <input type="number" step="0.01" min="0" id="tRent" required aria-label="Monthly Rent" placeholder="Monthly Rent (₱)" class="w-full text-sm border rounded-xl p-2.5" />
+          <input type="number" step="0.01" min="0" id="tMeter" required aria-label="Initial Sub-Meter" placeholder="Initial Sub-Meter (kWh)" class="w-full text-sm border rounded-xl p-2.5" />
+        </div>
+
+        <div class="pt-2 border-t border-slate-100 space-y-2">
+          <p class="text-[11px] font-semibold text-slate-500 uppercase">Tenant Portal Credentials (Optional now, or set later)</p>
+          <input type="text" id="tUser" autocomplete="off" aria-label="Tenant login username" placeholder="Tenant login username (3+ chars)" class="w-full text-sm border rounded-xl p-2.5" />
+          <input type="password" id="tPass" autocomplete="new-password" aria-label="Temporary password" placeholder="Temporary password (8+ chars)" class="w-full text-sm border rounded-xl p-2.5" />
+        </div>
+
         <div class="flex justify-end gap-2 pt-3">
           <button type="button" onclick="closeModal('addTenantModal')" class="px-4 py-2 border rounded-xl text-sm text-slate-600 cursor-pointer">Cancel</button>
           <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 cursor-pointer">Save Tenant</button>
@@ -409,8 +1217,29 @@
     </div>
   </div>
 
+  <!-- Set / Reset Tenant Login Modal -->
+  <div id="tenantLoginModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'tenantLoginModal')" class="no-print fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Tenant Login Access</h3>
+        <button type="button" onclick="closeModal('tenantLoginModal')" aria-label="Close" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
+      </div>
+      <p id="tlRoomLabel" class="text-xs text-slate-500"></p>
+      <form onsubmit="handleSetTenantLogin(event)" class="space-y-3">
+        <input type="hidden" id="tlRoomId" />
+        <input type="text" id="tlUsername" required placeholder="Tenant username (3+ chars)" class="w-full text-sm border rounded-xl p-2.5" />
+        <input type="password" id="tlPassword" required placeholder="New password (8+ chars)" class="w-full text-sm border rounded-xl p-2.5" />
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('tenantLoginModal')" class="px-3.5 py-2 border rounded-xl text-xs text-slate-600 cursor-pointer">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 cursor-pointer">Save Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Calculate Room Bill Modal -->
   <div id="createInvoiceModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'createInvoiceModal')" class="no-print fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="font-bold text-slate-800 text-lg">Calculate Room Bill</h3>
         <button type="button" onclick="closeModal('createInvoiceModal')" aria-label="Close" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
@@ -418,21 +1247,33 @@
       <form id="invoiceForm" onsubmit="handleCreateInvoice(event)" class="space-y-3">
         <select id="invTenantSelect" aria-label="Tenant" onchange="onTenantSelectedForBill()" required class="w-full text-sm border rounded-xl p-2.5"></select>
         <input type="month" id="invPeriod" aria-label="Billing month" required class="w-full text-sm border rounded-xl p-2.5" />
+
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-slate-600">Previous Reading (kWh)</label>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Rate per kWh (₱)</label>
+            <input type="number" step="0.0001" min="0.01" id="invRatePerKwh" oninput="calculateLivePreview()" required class="w-full text-sm border rounded-xl p-2.5 font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Water Fee (₱)</label>
+            <input type="number" step="0.01" min="0" id="invWaterFee" oninput="calculateLivePreview()" required class="w-full text-sm border rounded-xl p-2.5 font-semibold" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Previous Reading (kWh)</label>
             <input type="number" step="0.01" id="invPrevReading" readonly class="w-full text-sm bg-slate-100 border rounded-xl p-2.5 text-slate-600 font-semibold" />
           </div>
           <div>
-            <div class="flex justify-between items-center">
-              <label class="block text-xs font-medium text-slate-600">Current Reading (kWh)</label>
-                          </div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Current Reading (kWh)</label>
             <input type="number" step="0.01" min="0" id="invCurrReading" oninput="calculateLivePreview()" required class="w-full text-sm border rounded-xl p-2.5 font-semibold" />
           </div>
         </div>
+
         <div id="meterValidationAlert" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
           Warning: Current meter reading cannot be lower than the previous reading.
         </div>
+
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1.5 mt-2">
           <div class="flex justify-between">
             <span>Electricity (<span id="prevKwhUsed">0.00</span> kWh @ ₱<span id="prevRate">0.00</span>):</span>
@@ -451,6 +1292,7 @@
             <span>₱<span id="prevGrandTotal">0.00</span></span>
           </div>
         </div>
+
         <div class="flex justify-end gap-2 pt-3">
           <button type="button" onclick="closeModal('createInvoiceModal')" class="px-4 py-2 border rounded-xl text-sm text-slate-600 cursor-pointer">Cancel</button>
           <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 cursor-pointer">Generate Invoice</button>
@@ -459,6 +1301,7 @@
     </div>
   </div>
 
+  <!-- Record Payment Modal -->
   <div id="paymentModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'paymentModal')" class="no-print fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
       <div class="flex justify-between items-center border-b pb-2">
@@ -484,6 +1327,7 @@
     </div>
   </div>
 
+  <!-- SMS Reminder Modal -->
   <div id="smsModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'smsModal')" class="no-print fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
       <div class="flex justify-between items-center border-b pb-2">
@@ -499,11 +1343,12 @@
     </div>
   </div>
 
+  <!-- Official Statement Modal -->
   <div id="receiptModal" role="dialog" aria-modal="true" onclick="handleBackdropClick(event, 'receiptModal')" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div id="receiptCardWrapper" class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200">
       <div id="printableReceiptArea">
         <div class="text-center border-b pb-3">
-          <h4 class="font-black text-lg text-slate-800 tracking-tight">RENTORA BOARDING HOUSE</h4>
+          <h4 id="receiptHouseTitle" class="font-black text-lg text-slate-800 tracking-tight uppercase">RENTORA BOARDING HOUSE</h4>
           <p class="text-xs text-slate-500">Official Statement of Account</p>
         </div>
         <div id="receiptContent" class="text-xs space-y-2 text-slate-700 mt-3"></div>
@@ -516,6 +1361,6 @@
   </div>
 
   <div id="appNotice" role="alert" class="hidden"></div>
-  <script src="script.js"></script>
+  <script src="script.js?v=26"></script>
 </body>
 </html>
