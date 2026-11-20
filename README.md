@@ -2,6 +2,8 @@
 
 **GitHub Repository:** https://github.com/jomeljustinebabanto/rentora-ph
 
+**InfinityFree Website:** https://rentora-ph.infinityfreeapp.com/
+
 Rentora is a web application built for boarding house owners (landlords) and tenants. It manages room records, electric sub-meter computations, water fees, monthly rent invoices, payments, printable statements, and announcements across phones and computers.
 
 ---
